@@ -86,12 +86,18 @@ static void event_handler(void *arg, esp_event_base_t event_base, int event_id,
   if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
     esp_wifi_connect();
   } else if (event_base == WIFI_EVENT &&
-             event_id == WIFI_EVENT_STA_DISCONNECTED) {
+           event_id == WIFI_EVENT_STA_DISCONNECTED) {
+    wifi_event_sta_disconnected_t *event =
+      (wifi_event_sta_disconnected_t *)event_data;
+    ESP_LOGE(TAG,
+           "WiFi disconnected: reason=%d, retries=%d",
+           event->reason,
+           s_retry_num);
     if ((s_retry_num < WIFI_MAXIMUM_RETRY) || (WIFI_MAXIMUM_RETRY == 0)) {
       xSemaphoreTake(connIpSemaphoreHandle, portMAX_DELAY);
       connected = false;
       xSemaphoreGive(connIpSemaphoreHandle);
-
+      ESP_LOGI(TAG, "WiFi started, connecting 2");
       esp_wifi_connect();
       s_retry_num++;
       ESP_LOGV(TAG, "retry to connect to the AP");
