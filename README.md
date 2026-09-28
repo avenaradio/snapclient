@@ -1,3 +1,16 @@
+```shell
+source ~/esp/esp-idf/export.sh
+idf.py menuconfig
+
+idf.py build flash
+
+```
+
+
+
+
+---
+
 # Snapcast client for ESP32
 
 ### Synchronous Multiroom audio streaming client for [Snapcast](https://github.com/badaix/snapcast) ported to ESP32
