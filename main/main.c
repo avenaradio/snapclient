@@ -35,6 +35,8 @@
 
 #include "esp32_udp_logger.h"
 
+#include "osc.h"
+
 // Web socket server
 // #include "websocket_if.h"
 // #include "websocket_server.h"
@@ -561,9 +563,9 @@ void server_settings_msg_received(
   if (scSet->muted != server_settings_message->muted) {
 #if SNAPCAST_USE_SOFT_VOL
     if (server_settings_message->muted) {
-      dsp_processor_set_volome(0.0);
+      //dsp_processor_set_volome(0.0);
     } else {
-      dsp_processor_set_volome((double)server_settings_message->volume / 100);
+      //dsp_processor_set_volome((double)server_settings_message->volume / 100);
     }
 #endif
     audio_set_mute(server_settings_message->muted);
@@ -572,7 +574,7 @@ void server_settings_msg_received(
   if (scSet->volume != server_settings_message->volume) {
 #if SNAPCAST_USE_SOFT_VOL
     if (!server_settings_message->muted) {
-      dsp_processor_set_volome((double)server_settings_message->volume / 100);
+      //dsp_processor_set_volome((double)server_settings_message->volume / 100);
     }
 #else
     audio_set_volume(server_settings_message->volume);
@@ -1398,6 +1400,7 @@ void app_main(void) {
 #endif
 
   network_if_init();
+  osc_init();
 
   board_i2s_pin_t pin_config0;
   get_i2s_pins(I2S_NUM_0, &pin_config0);

@@ -10,6 +10,8 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
+#include "dsp_processor.h"
+
 
 #define OSC_IN_PORT 9001
 #define OSC_OUT_PORT 9002
@@ -21,7 +23,6 @@
 static esp_osc_client_t client;
 static esp_osc_target_t target;
 
-QueueHandle_t volume_queue = NULL;
 float stored_last_volume = 0.0f;
 int muted = 0;
 
@@ -30,7 +31,7 @@ static void receiver(void *parameter);
 void gain(float gain);
 
 void osc_init(void){
-    volume_queue = xQueueCreate(1, sizeof(float));
+    dsp_processor_set_volome(0.0);
     target = esp_osc_target(OSC_OUT_ADDRESS, OSC_OUT_PORT);
     esp_osc_init(&client, OSC_BUFFER_SIZE, OSC_IN_PORT);
     // xTaskCreatePinnedToCore(sender, "sender", 4096, NULL, 10, NULL, 1);
@@ -71,41 +72,41 @@ bool osc_send_int(const char *topic, const char *format, int value){
 
 static bool osc_callback(const char *topic, const char *format, esp_osc_value_t *values){
     ESP_LOGI(TAG, "got message: %s (%s)", topic, format);
-    // for (size_t i = 0; i < strlen(format); i++) {
-    //     switch (format[i]) {
-    //     case 'i':
-    //         ESP_LOGI(TAG, "==> i: %d", values[i].i);
-    //         break;
+    for (size_t i = 0; i < strlen(format); i++) {
+        switch (format[i]) {
+        case 'i':
+            ESP_LOGI(TAG, "==> i: %d", values[i].i);
+            break;
 
-    //     case 'h':
-    //         ESP_LOGI(TAG, "==> h: %lld", values[i].h);
-    //         break;
+        case 'h':
+            ESP_LOGI(TAG, "==> h: %lld", values[i].h);
+            break;
 
-    //     case 'f':
-    //         ESP_LOGI(TAG, "==> f: %f", values[i].f);
-    //         break;
+        case 'f':
+            ESP_LOGI(TAG, "==> f: %f", values[i].f);
+            break;
 
-    //     case 'd':
-    //         ESP_LOGI(TAG, "==> d: %f", values[i].d);
-    //         break;
+        case 'd':
+            ESP_LOGI(TAG, "==> d: %f", values[i].d);
+            break;
 
-    //     case 's':
-    //         ESP_LOGI(TAG, "==> s: %s", values[i].s);
-    //         break;
+        case 's':
+            ESP_LOGI(TAG, "==> s: %s", values[i].s);
+            break;
 
-    //     case 'b':
-    //         ESP_LOGI(TAG, "==> b: %.*s (%d)",
-    //                  values[i].bl,
-    //                  values[i].b,
-    //                  values[i].bl);
-    //         break;
-    //     }
-    // }
+        case 'b':
+            ESP_LOGI(TAG, "==> b: %.*s (%d)",
+                     values[i].bl,
+                     values[i].b,
+                     values[i].bl);
+            break;
+        }
+    }
     if (strcmp(topic, "/adm/obj/16/gain") == 0) {
         if (strcmp(format, "f") == 0) {
             stored_last_volume = values[0].f;
             if(!muted){
-                xQueueOverwrite(volume_queue, &stored_last_volume);
+                dsp_processor_set_volome(stored_last_volume);
             }
         } else {
             float values[1] = {stored_last_volume};
@@ -114,11 +115,10 @@ static bool osc_callback(const char *topic, const char *format, esp_osc_value_t 
     } else if (strcmp(topic, "/adm/obj/16/mute") == 0) {
         if (strcmp(format, "i") == 0) {
             if (values[0].i == 1 && muted == 0){
-                float muted_volume = 0.0f;
-                xQueueOverwrite(volume_queue, &muted_volume);
+                dsp_processor_set_volome(0.0);
                 muted = 1;
             } else if(values[0].i == 0 && muted == 1){
-                xQueueOverwrite(volume_queue, &stored_last_volume);
+                dsp_processor_set_volome(stored_last_volume);
                 muted = 0;
             }
         } else {
